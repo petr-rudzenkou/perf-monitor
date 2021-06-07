@@ -1,12 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
+﻿using PerfMonitor.Internal;
+using System.Collections.Generic;
 
 namespace PerfMonitor
 {
     interface IPerfCounterProvider
     {
-        PerformanceCounter GetPerfCounter(int processId, string processCounterName);
+        IPerfCounter GetPerfCounter(int processId, string processCounterName);
 
-        IEnumerable<PerformanceCounter> GetPerfCounters(string processName, string processCounterName);
+        IEnumerable<IPerfCounter> GetPerfCounters(string processName, string processCounterName);
     }
 }

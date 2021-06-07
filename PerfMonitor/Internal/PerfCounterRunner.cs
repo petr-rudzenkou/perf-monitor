@@ -21,17 +21,23 @@ namespace PerfMonitor
 
         public void Run()
         {
-            var processName = _config.GetValue<string>("PerfMonitor:ProcessName");
+            var processNames = _config.GetSection("PerfMonitor:ProcessNames").Get<string[]>();
             var duration = _config.GetValue<int>("PerfMonitor:Duration");
             var interval = _config.GetValue<int>("PerfMonitor:Interval");
             var counterNames = _config.GetSection("PerfMonitor:Counters").Get<string[]>();
             var iterations = duration / interval;
             interval = interval * 1000;
 
-            var counters = counterNames.SelectMany(counterName => _counterProvider.GetPerfCounters(processName, counterName)).ToList();
+            var counters = counterNames.SelectMany(counterName => processNames.SelectMany(processName =>
+            {
+                var counters =  _counterProvider.GetPerfCounters(processName, counterName).ToList();
+                return counters;
+            })).ToList();
+
             foreach (var counter in counters)
             {
-                counter.NextValue();
+                float metric;
+                counter.TryGetNextValue(out metric);
             }
 
             Thread.Sleep(interval);
@@ -43,14 +49,9 @@ namespace PerfMonitor
                 foreach (var counter in counters)
                 {
                     float metric;
-                    if (counter.CounterName == "% Privileged Time" || counter.CounterName == "% User Time" || counter.CounterName == "% Processor Time")
+                    if (!counter.TryGetNextValue(out metric))
                     {
-                        // special case
-                        metric = counter.NextValue() / Environment.ProcessorCount;
-                    }
-                    else
-                    {
-                        metric = counter.NextValue();
+                        continue;
                     }
 
                     float currentMetric;

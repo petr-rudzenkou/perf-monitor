@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PerfMonitor.Internal;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -8,20 +9,20 @@ namespace PerfMonitor
 {
     internal class PerfCounterProvider : IPerfCounterProvider
     {
-        public PerformanceCounter GetPerfCounter(int processId, string processCounterName)
+        public IPerfCounter GetPerfCounter(int processId, string processCounterName)
         {
             string instance = GetInstanceNameForProcessId(processId);
             if (string.IsNullOrEmpty(instance))
                 return null;
 
-            return new PerformanceCounter("Process", processCounterName, instance);
+            return new PerfCounterWrapper(new PerformanceCounter("Process", processCounterName, instance));
         }
 
-        public IEnumerable<PerformanceCounter> GetPerfCounters(string processName, string processCounterName)
+        public IEnumerable<IPerfCounter> GetPerfCounters(string processName, string processCounterName)
         {
             return new PerformanceCounterCategory("Process").GetInstanceNames()
-                .Where(name => name.StartsWith(processName))
-                .Select(name => new PerformanceCounter("Process", processCounterName, name));
+                .Where(name => name.ToUpper().StartsWith(processName.ToUpper()))
+                .Select(name => new PerfCounterWrapper(new PerformanceCounter("Process", processCounterName, name)));
         }
 
         private static string GetInstanceNameForProcessId(int processId)
